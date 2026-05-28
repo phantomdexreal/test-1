@@ -77,7 +77,7 @@ function createWindow(): void {
   if (IS_DEV) {
     mainWindow.loadURL(DEV_SERVER_URL)
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
+    mainWindow.loadFile(path.join(__dirname, '../../dist/index.html'))
   }
 
   mainWindow.on('closed', () => {
