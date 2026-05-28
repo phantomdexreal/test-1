@@ -1,0 +1,166 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * cQikly — Global CSS
+ *
+ * All theme values are CSS custom properties.
+ * ThemeContext (Phase 1a-ii-A) swaps these at runtime on :root
+ * without any page reload or component re-render.
+ *
+ * Themes: Space Particles (default), Sakura, Minimal, Dark Rainbow, Neon, Dark Rose
+ * Each theme has dark + light variants.
+ * Full theme variable sets defined in /src/renderer/themes/
+ */
+
+@layer base {
+  :root {
+    /* ── Shadcn/ui base tokens ── */
+    --background: 222 47% 5%;
+    --foreground: 210 40% 94%;
+    --card: 222 47% 8%;
+    --card-foreground: 210 40% 94%;
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 40% 94%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 5%;
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 210 40% 94%;
+    --muted: 217 32% 13%;
+    --muted-foreground: 215 20% 55%;
+    --accent: 217 32% 17%;
+    --accent-foreground: 210 40% 94%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 32% 15%;
+    --input: 217 32% 15%;
+    --ring: 217 91% 60%;
+    --radius: 0.5rem;
+
+    /* ── cQikly custom surface tokens ── */
+    --cq-surface: 222 47% 7%;
+    --cq-surface-raised: 222 47% 10%;
+    --cq-brand: 217 91% 60%;
+    --cq-brand-light: 217 91% 75%;
+    --cq-glow: 217 91% 60%;
+
+    /* ── Typography ── */
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  /* Light mode override — applied by ThemeContext when dark=false */
+  .light {
+    --background: 0 0% 98%;
+    --foreground: 222 47% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 8%;
+    --primary: 217 91% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 92%;
+    --secondary-foreground: 222 47% 8%;
+    --muted: 210 40% 94%;
+    --muted-foreground: 215 20% 45%;
+    --accent: 210 40% 92%;
+    --accent-foreground: 222 47% 8%;
+    --border: 214 32% 86%;
+    --input: 214 32% 86%;
+    --ring: 217 91% 50%;
+    --cq-surface: 0 0% 96%;
+    --cq-surface-raised: 0 0% 100%;
+    --cq-brand: 217 91% 50%;
+    --cq-brand-light: 217 91% 40%;
+    --cq-glow: 217 91% 50%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Electron: prevent text selection on UI chrome */
+    user-select: none;
+  }
+
+  /* Re-enable text selection inside input-like elements */
+  input,
+  textarea,
+  [contenteditable],
+  .selectable {
+    user-select: text;
+  }
+
+  /* Remove Electron default drag region */
+  body {
+    -webkit-app-region: no-drag;
+  }
+}
+
+@layer utilities {
+  /* Generous spacing utility — enforces "breathing room" UI rule (Spec #27) */
+  .cq-card {
+    @apply rounded-lg border border-border bg-card p-6 shadow-sm;
+  }
+
+  .cq-surface {
+    background: hsl(var(--cq-surface));
+  }
+
+  .cq-surface-raised {
+    background: hsl(var(--cq-surface-raised));
+  }
+
+  /* Billing grid cell focus ring */
+  .billing-cell:focus {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: -2px;
+  }
+}
+
+/* ─── Theme: Neon — glow on interactive elements ─────────────────────────── */
+/* Applied only when data-theme="neon" is active */
+[data-cq-theme="neon"] button:focus-visible,
+[data-cq-theme="neon"] input:focus,
+[data-cq-theme="neon"] .billing-cell:focus {
+  box-shadow: 0 0 0 2px var(--cq-glow), 0 0 12px var(--cq-glow);
+}
+
+/* ─── Theme: Neon — sidebar nav items get glow ───────────────────────────── */
+[data-cq-theme="neon"] nav a:hover,
+[data-cq-theme="neon"] nav button:hover {
+  text-shadow: 0 0 8px var(--cq-glow);
+}
+
+/* ─── Performance mode: disable all CSS transitions in Lite ─────────────── */
+/* Toggled by PerformanceContext setting --cq-anim-enabled to "0" */
+:root[style*="--cq-anim-enabled: 0"] *,
+:root[style*="--cq-anim-enabled:0"] * {
+  animation-play-state: paused !important;
+  transition: none !important;
+}
+
+/* ─── Theme: Dark Rainbow — ensure bg uses the dynamic CSS var value ─────── */
+[data-cq-theme="dark-rainbow"] {
+  background: var(--cq-bg-primary);
+  transition: background 0.3s ease;
+}
+
+/* ─── Dashboard background fill ─────────────────────────────────────────── */
+.cq-dashboard-bg {
+  background: var(--cq-bg-primary);
+  transition: background 0.25s ease;
+}
+
+
+/* Phase 9b-B-i: spinner for image loading */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

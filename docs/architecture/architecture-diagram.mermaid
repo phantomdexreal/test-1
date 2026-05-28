@@ -1,0 +1,144 @@
+---
+title: cQikly — Final Architecture (v1.0.0, Phase 14)
+---
+graph TB
+    subgraph ELECTRON["Electron Shell (Windows)"]
+        direction TB
+        MAIN["Main Process\nsrc/main/index.ts"]
+        PRELOAD["Preload Script\nsrc/main/preload.ts\n(contextBridge)"]
+        IPC_BUS["IPC Bus\nsrc/main/ipc/"]
+
+        subgraph IPC_HANDLERS["IPC Handlers"]
+            H_APP["app.handler"]
+            H_DB["db.handler"]
+            H_PDF["pdf.handler"]
+            H_SET["settings.handler"]
+            H_CRASH["crashRecovery.handler"]
+            H_LOCK["appLock.handler"]
+            H_UPD["updater.handler"]
+        end
+
+        subgraph MAIN_SERVICES["Main Process Services"]
+            CR["CrashRecovery"]
+            UPD["Updater\n(electron-updater)"]
+            SESS["SessionLogger"]
+            MIGR["MigrationRunner"]
+        end
+    end
+
+    subgraph RENDERER["Renderer Process (React + Vite + TypeScript)"]
+        direction TB
+
+        subgraph CONTEXTS["Contexts (Global State)"]
+            CTX_CFG["ConfigContext\n(app config + settings)"]
+            CTX_PERF["PerformanceContext\n(lite/balanced/ultra)"]
+            CTX_FF["FeatureFlagContext\n(9 module flags)"]
+            CTX_NAV["NavigationContext\n(page routing)"]
+            CTX_DB["DBContext\n(db ready state)"]
+            CTX_LANG["LanguageContext\n(i18n)"]
+            CTX_THEME["ThemeContext\n(visual theme)"]
+        end
+
+        subgraph PAGES["Pages"]
+            P_OB["Onboarding"]
+            P_DASH["Dashboard"]
+            P_NQ["New Quote"]
+            P_HIST["History"]
+            P_CUST["Customer Details"]
+            P_INV["Inventory"]
+            P_LIH["Loose Inventory History"]
+            P_SET["Settings (17 panels)"]
+        end
+
+        subgraph MODULE_STUBS["Boolean-Gated Module Stubs"]
+            M_REP["Reports"]
+            M_EXP["Expense Tracker"]
+            M_MU["Multi-User"]
+            M_PL["Payment Ledger"]
+            M_WA["WhatsApp Share (service)"]
+            M_BS["Branch Sync"]
+            M_BAM["Branch Activity Monitor"]
+            M_CDS["Customer DB Sync"]
+            M_PLS["Price List Sync"]
+        end
+
+        subgraph GLOBAL_UX["Global UX Overlays"]
+            CALC["Calculator Overlay\n(Alt+N)"]
+            SCPAD["Scratchpad Overlay\n(Ctrl+Shift+N)"]
+            CMD["Command Palette\n(Ctrl+K)"]
+            SHREF["Shortcut Reference\n(Ctrl+/)"]
+        end
+
+        subgraph SERVICES["Service Layer (all external calls)"]
+            SVC_BILL["bill.service"]
+            SVC_CUST["customer.service"]
+            SVC_INV["inventory.service"]
+            SVC_HIST["history.service"]
+            SVC_LED["ledger.service"]
+            SVC_PAY["payment.service"]
+            SVC_PDF["pdf.service"]
+            SVC_BK["backup.service"]
+            SVC_DASH["dashboard.service"]
+            SVC_WTH["weather.service"]
+            SVC_CRY["crypto.service"]
+            SVC_FX["forex.service"]
+            SVC_DB["db.service (IPC bridge)"]
+        end
+
+        HOOKS["useGlobalShortcuts\nusePerformance\nuseFeatureFlag\nuseConfig"]
+        EBUS["EventBus\n(in-process pub/sub)"]
+        APPSHELL["AppShell\n(layout + gating)"]
+        SIDEBAR["Sidebar\n(flag-aware nav)"]
+    end
+
+    subgraph STORAGE["Storage Layer"]
+        SQLITE_BIZ["Business DB\nbusiness.sqlite\n(bills, customers, inventory,\npayments, versions)"]
+        SQLITE_CFG["Config DB\nconfig.sqlite\n(settings, company profile,\nfeature flags, access keys)"]
+    end
+
+    subgraph EXTERNAL["External (Optional, Polled Only in Balanced/Ultra)"]
+        API_WTH["Weather API\n(OpenMeteo — free)"]
+        API_CRY["Crypto API\n(CoinGecko — free)"]
+        API_FX["Forex API\n(ExchangeRate-API — free)"]
+        SUPABASE["Supabase\n(future cloud sync)"]
+    end
+
+    %% Electron wiring
+    MAIN --> PRELOAD
+    MAIN --> IPC_BUS
+    IPC_BUS --> IPC_HANDLERS
+    MAIN --> MAIN_SERVICES
+    MIGR --> SQLITE_BIZ
+    MIGR --> SQLITE_CFG
+
+    %% Renderer internal wiring
+    APPSHELL --> PAGES
+    APPSHELL --> MODULE_STUBS
+    APPSHELL --> GLOBAL_UX
+    SIDEBAR --> APPSHELL
+    CTX_FF --> SIDEBAR
+    CTX_PERF --> SERVICES
+    CONTEXTS --> PAGES
+    PAGES --> SERVICES
+    SERVICES --> SVC_DB
+    HOOKS --> EBUS
+    EBUS --> PAGES
+    EBUS --> GLOBAL_UX
+
+    %% IPC bridge
+    SVC_DB -- "window.cqikly IPC" --> PRELOAD
+    PRELOAD -- "ipcRenderer" --> IPC_BUS
+    IPC_HANDLERS --> SQLITE_BIZ
+    IPC_HANDLERS --> SQLITE_CFG
+    H_PDF -- "hidden BrowserWindow\nprintToPDF / capturePage" --> SVC_PDF
+
+    %% External
+    SVC_WTH --> API_WTH
+    SVC_CRY --> API_CRY
+    SVC_FX --> API_FX
+    SVC_DASH -.-> SUPABASE
+
+    %% Performance gating
+    CTX_PERF -. "apiPollingEnabled=false\n(Lite mode)" .-> SVC_WTH
+    CTX_PERF -. "apiPollingEnabled=false\n(Lite mode)" .-> SVC_CRY
+    CTX_PERF -. "apiPollingEnabled=false\n(Lite mode)" .-> SVC_FX
