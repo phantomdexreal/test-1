@@ -24,7 +24,7 @@ jobs:
       # 3. Install dependencies
       #    postinstall runs electron-rebuild automatically for better-sqlite3
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       # 4. Build Vite renderer + compile Electron main process + package .exe
       - name: Build and package
